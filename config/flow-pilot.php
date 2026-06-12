@@ -12,4 +12,26 @@ return [
     'flows' => [
         //
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payload Storage
+    |--------------------------------------------------------------------------
+    |
+    | These keys are redacted anywhere they appear before payloads, step inputs,
+    | or step outputs are persisted.
+    |
+    */
+    'payloads' => [
+        'redact' => [
+            'password',
+            'token',
+            'secret',
+            'api_key',
+            'authorization',
+            'card',
+            'card_number',
+            'cvv',
+        ],
+    ],
 ];

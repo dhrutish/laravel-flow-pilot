@@ -4,8 +4,12 @@ namespace FlowPilot\LaravelFlowPilot\Runners;
 
 use FlowPilot\LaravelFlowPilot\Data\FlowContext;
 use FlowPilot\LaravelFlowPilot\Enums\FlowRunStatus;
+use FlowPilot\LaravelFlowPilot\Events\FlowCompleted;
+use FlowPilot\LaravelFlowPilot\Events\FlowFailed;
+use FlowPilot\LaravelFlowPilot\Events\FlowStarted;
 use FlowPilot\LaravelFlowPilot\Models\FlowRun;
 use FlowPilot\LaravelFlowPilot\Registry\FlowRegistry;
+use FlowPilot\LaravelFlowPilot\Support\PayloadNormalizer;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -14,6 +18,7 @@ class FlowRunner
     public function __construct(
         private readonly FlowRegistry $flowRegistry,
         private readonly StepRunner $stepRunner,
+        private readonly PayloadNormalizer $payloadNormalizer,
     ) {}
 
     /**
@@ -31,9 +36,11 @@ class FlowRunner
             'status' => FlowRunStatus::Running,
             'trigger_type' => $options['trigger_type'] ?? null,
             'trigger_name' => $options['trigger_name'] ?? null,
-            'payload' => $this->prepareForStorage($payload),
+            'payload' => $this->payloadNormalizer->forStorage($payload),
             'started_at' => now(),
         ]);
+
+        event(new FlowStarted($flowRun));
 
         $stepOutputs = [];
         $context = new FlowContext($payload, $flowRun, $stepOutputs);
@@ -55,6 +62,8 @@ class FlowRunner
                         'failure_message' => $result->failureMessage,
                     ]);
 
+                    event(new FlowFailed($flowRun->fresh(['stepRuns'])));
+
                     return $flowRun->fresh(['stepRuns']);
                 }
 
@@ -66,36 +75,18 @@ class FlowRunner
                 'status' => FlowRunStatus::Completed,
                 'completed_at' => now(),
             ]);
+
+            event(new FlowCompleted($flowRun->fresh(['stepRuns'])));
         } catch (Throwable $exception) {
             $flowRun->update([
                 'status' => FlowRunStatus::Failed,
                 'failed_at' => now(),
                 'failure_message' => $exception->getMessage(),
             ]);
+
+            event(new FlowFailed($flowRun->fresh(['stepRuns'])));
         }
 
         return $flowRun->fresh(['stepRuns']);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function prepareForStorage(array $payload): array
-    {
-        return array_map(fn (mixed $value): mixed => $this->normalizeValue($value), $payload);
-    }
-
-    private function normalizeValue(mixed $value): mixed
-    {
-        if (is_array($value)) {
-            return array_map(fn (mixed $item): mixed => $this->normalizeValue($item), $value);
-        }
-
-        if (is_object($value)) {
-            return ['class' => $value::class];
-        }
-
-        return $value;
     }
 }

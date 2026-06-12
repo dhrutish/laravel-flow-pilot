@@ -8,6 +8,7 @@ use FlowPilot\LaravelFlowPilot\Commands\RunFlowCommand;
 use FlowPilot\LaravelFlowPilot\Registry\FlowRegistry;
 use FlowPilot\LaravelFlowPilot\Runners\FlowRunner;
 use FlowPilot\LaravelFlowPilot\Runners\StepRunner;
+use FlowPilot\LaravelFlowPilot\Support\PayloadNormalizer;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 
@@ -17,6 +18,7 @@ class FlowPilotServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/flow-pilot.php', 'flow-pilot');
 
+        $this->app->singleton(PayloadNormalizer::class);
         $this->app->singleton(StepRunner::class);
         $this->app->singleton(FlowRegistry::class);
         $this->app->singleton(FlowRunner::class);

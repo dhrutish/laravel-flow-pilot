@@ -2,13 +2,22 @@
 
 use FlowPilot\LaravelFlowPilot\Enums\FlowRunStatus;
 use FlowPilot\LaravelFlowPilot\Enums\FlowStepStatus;
+use FlowPilot\LaravelFlowPilot\Events\FlowCompleted;
+use FlowPilot\LaravelFlowPilot\Events\FlowFailed;
+use FlowPilot\LaravelFlowPilot\Events\FlowStarted;
+use FlowPilot\LaravelFlowPilot\Events\FlowStepCompleted;
+use FlowPilot\LaravelFlowPilot\Events\FlowStepFailed;
+use FlowPilot\LaravelFlowPilot\Events\FlowStepStarted;
 use FlowPilot\LaravelFlowPilot\Facades\FlowPilot;
 use FlowPilot\LaravelFlowPilot\Jobs\RunFlowJob;
 use FlowPilot\LaravelFlowPilot\Models\FlowRun;
 use FlowPilot\LaravelFlowPilot\Models\FlowStepRun;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\EventTriggeredFlow;
+use FlowPilot\LaravelFlowPilot\Tests\Stubs\FailingFlow;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\TestFlow;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\TrialEndingSoon;
+use FlowPilot\LaravelFlowPilot\Tests\Stubs\WeeklyReportFlow;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 
 it('runs a flow manually and persists run and step records', function () {
@@ -36,6 +45,63 @@ it('runs a flow manually and persists run and step records', function () {
         ->and($stepRuns[1]->output)->toBe(['message' => 'Hello, Flow Pilot from step two.']);
 });
 
+it('redacts sensitive values before storing flow and step payloads', function () {
+    $flowRun = FlowPilot::run(TestFlow::class, [
+        'name' => 'Sensitive',
+        'api_key' => 'secret-key',
+        'nested' => [
+            'token' => 'secret-token',
+        ],
+    ]);
+
+    $stepRun = $flowRun->stepRuns->first();
+
+    expect($flowRun->payload)->toMatchArray([
+        'api_key' => '[REDACTED]',
+        'nested' => [
+            'token' => '[REDACTED]',
+        ],
+    ])
+        ->and($stepRun->input['payload'])->toMatchArray([
+            'api_key' => '[REDACTED]',
+            'nested' => [
+                'token' => '[REDACTED]',
+            ],
+        ]);
+});
+
+it('marks a flow as failed when a step returns failure', function () {
+    $flowRun = FlowPilot::run(FailingFlow::class);
+    $stepRun = $flowRun->stepRuns->first();
+
+    expect($flowRun->status)->toBe(FlowRunStatus::Failed)
+        ->and($flowRun->failure_message)->toBe('The step failed.')
+        ->and($stepRun->status)->toBe(FlowStepStatus::Failed)
+        ->and($stepRun->failure_message)->toBe('The step failed.')
+        ->and($stepRun->output)->toBe(['api_key' => '[REDACTED]']);
+});
+
+it('dispatches lifecycle events for successful and failed flows', function () {
+    Event::fake([
+        FlowStarted::class,
+        FlowCompleted::class,
+        FlowFailed::class,
+        FlowStepStarted::class,
+        FlowStepCompleted::class,
+        FlowStepFailed::class,
+    ]);
+
+    FlowPilot::run(TestFlow::class);
+    FlowPilot::run(FailingFlow::class);
+
+    Event::assertDispatched(FlowStarted::class, 2);
+    Event::assertDispatched(FlowCompleted::class, 1);
+    Event::assertDispatched(FlowFailed::class, 1);
+    Event::assertDispatched(FlowStepStarted::class, 3);
+    Event::assertDispatched(FlowStepCompleted::class, 2);
+    Event::assertDispatched(FlowStepFailed::class, 1);
+});
+
 it('runs a flow via the artisan command', function () {
     config()->set('flow-pilot.flows', [TestFlow::class]);
 
@@ -53,13 +119,16 @@ it('runs a flow via the artisan command', function () {
 });
 
 it('runs a registered flow by name', function () {
-    config()->set('flow-pilot.flows', [TestFlow::class]);
+    config()->set('flow-pilot.flows', [TestFlow::class, WeeklyReportFlow::class]);
 
     $flowRun = FlowPilot::run('test-flow', ['name' => 'Named']);
+    $weeklyReportRun = FlowPilot::run('weekly-report', ['name' => 'Report']);
 
     expect($flowRun->status)->toBe(FlowRunStatus::Completed)
         ->and($flowRun->flow_class)->toBe(TestFlow::class)
-        ->and($flowRun->stepRuns)->toHaveCount(2);
+        ->and($flowRun->stepRuns)->toHaveCount(2)
+        ->and($weeklyReportRun->status)->toBe(FlowRunStatus::Completed)
+        ->and($weeklyReportRun->flow_class)->toBe(WeeklyReportFlow::class);
 });
 
 it('lists registered flows via artisan', function () {

@@ -6,8 +6,12 @@ use FlowPilot\LaravelFlowPilot\Contracts\FlowStepContract;
 use FlowPilot\LaravelFlowPilot\Data\FlowContext;
 use FlowPilot\LaravelFlowPilot\Data\StepResult;
 use FlowPilot\LaravelFlowPilot\Enums\FlowStepStatus;
+use FlowPilot\LaravelFlowPilot\Events\FlowStepCompleted;
+use FlowPilot\LaravelFlowPilot\Events\FlowStepFailed;
+use FlowPilot\LaravelFlowPilot\Events\FlowStepStarted;
 use FlowPilot\LaravelFlowPilot\Models\FlowRun;
 use FlowPilot\LaravelFlowPilot\Models\FlowStepRun;
+use FlowPilot\LaravelFlowPilot\Support\PayloadNormalizer;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 use Throwable;
@@ -16,6 +20,7 @@ class StepRunner
 {
     public function __construct(
         private readonly Container $container,
+        private readonly PayloadNormalizer $payloadNormalizer,
     ) {}
 
     public function run(
@@ -32,11 +37,13 @@ class StepRunner
             'status' => FlowStepStatus::Running,
             'position' => $position,
             'input' => [
-                'payload' => $this->prepareForStorage($context->payload),
-                'step_outputs' => $this->prepareForStorage($context->stepOutputs),
+                'payload' => $this->payloadNormalizer->forStorage($context->payload),
+                'step_outputs' => $this->payloadNormalizer->forStorage($context->stepOutputs),
             ],
             'started_at' => now(),
         ]);
+
+        event(new FlowStepStarted($stepRun));
 
         try {
             if (! is_subclass_of($class, FlowStepContract::class)) {
@@ -50,16 +57,20 @@ class StepRunner
             if ($result->success) {
                 $stepRun->update([
                     'status' => FlowStepStatus::Completed,
-                    'output' => $this->prepareForStorage($result->output),
+                    'output' => $this->payloadNormalizer->forStorage($result->output),
                     'completed_at' => now(),
                 ]);
+
+                event(new FlowStepCompleted($stepRun->fresh()));
             } else {
                 $stepRun->update([
                     'status' => FlowStepStatus::Failed,
-                    'output' => $this->prepareForStorage($result->output),
+                    'output' => $this->payloadNormalizer->forStorage($result->output),
                     'failed_at' => now(),
                     'failure_message' => $result->failureMessage,
                 ]);
+
+                event(new FlowStepFailed($stepRun->fresh()));
             }
 
             return $result;
@@ -70,29 +81,9 @@ class StepRunner
                 'failure_message' => $exception->getMessage(),
             ]);
 
+            event(new FlowStepFailed($stepRun->fresh()));
+
             return StepResult::failure($exception->getMessage());
         }
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function prepareForStorage(array $payload): array
-    {
-        return array_map(fn (mixed $value): mixed => $this->normalizeValue($value), $payload);
-    }
-
-    private function normalizeValue(mixed $value): mixed
-    {
-        if (is_array($value)) {
-            return array_map(fn (mixed $item): mixed => $this->normalizeValue($item), $value);
-        }
-
-        if (is_object($value)) {
-            return ['class' => $value::class];
-        }
-
-        return $value;
     }
 }
