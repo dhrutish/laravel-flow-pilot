@@ -1,0 +1,40 @@
+{
+  "name": "flow-pilot/laravel-flow-pilot",
+  "description": "Laravel-native workflow automation with status tracking and testing helpers.",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.1",
+    "illuminate/support": "^10.0",
+    "illuminate/database": "^10.0",
+    "illuminate/console": "^10.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0",
+    "pestphp/pest": "^2.0",
+    "pestphp/pest-plugin-laravel": "^2.0",
+    "laravel/pint": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "FlowPilot\\LaravelFlowPilot\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "FlowPilot\\LaravelFlowPilot\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "FlowPilot\\LaravelFlowPilot\\FlowPilotServiceProvider"
+      ],
+      "aliases": {
+        "FlowPilot": "FlowPilot\\LaravelFlowPilot\\Facades\\FlowPilot"
+      }
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
