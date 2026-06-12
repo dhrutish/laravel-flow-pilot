@@ -43,7 +43,19 @@ class FlowPilot
      */
     public function dispatch(string $flow, array $payload = []): mixed
     {
-        return $this->bus->dispatch(new RunFlowJob($flow, $payload));
+        $job = new RunFlowJob($flow, $payload);
+
+        $connection = config('flow-pilot.queue.connection');
+        if ($connection !== null && $connection !== '') {
+            $job->onConnection($connection);
+        }
+
+        $queue = config('flow-pilot.queue.queue');
+        if ($queue !== null && $queue !== '') {
+            $job->onQueue($queue);
+        }
+
+        return $this->bus->dispatch($job);
     }
 
     public function registerEventTriggers(): void

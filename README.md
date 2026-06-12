@@ -63,6 +63,15 @@ FlowPilot::run('trial-ending-reminder', ['user_id' => 123]);
 FlowPilot::dispatch('trial-ending-reminder', ['user_id' => 123]);
 ```
 
+Queued flows use Laravel's queue system. Configure the queue connection and queue name in `config/flow-pilot.php` or with environment variables:
+
+```dotenv
+FLOW_PILOT_QUEUE_CONNECTION=redis
+FLOW_PILOT_QUEUE=critical-flows
+```
+
+When the queue connection is unset, Flow Pilot leaves the job connection unset so Laravel can use the application's default queue connection. The published config defaults `queue` to `default`; set `queue` to `null` in `config/flow-pilot.php` if you want Laravel to choose the queue name entirely from the application defaults.
+
 ## Artisan
 
 ```bash
