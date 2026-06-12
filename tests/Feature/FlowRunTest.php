@@ -245,6 +245,33 @@ it('dispatches a flow onto the queue', function () {
     });
 });
 
+it('applies configured queue connection and queue name when dispatching a flow', function () {
+    Queue::fake();
+    config()->set('flow-pilot.queue.connection', 'redis');
+    config()->set('flow-pilot.queue.queue', 'critical-flows');
+
+    FlowPilot::dispatch(TestFlow::class, ['name' => 'Queued']);
+
+    Queue::assertPushed(RunFlowJob::class, function (RunFlowJob $job): bool {
+        return $job->connection === 'redis'
+            && $job->queue === 'critical-flows';
+    });
+});
+
+it('dispatches flows when queue connection and queue name are not configured', function () {
+    Queue::fake();
+    config()->set('flow-pilot.queue.connection', null);
+    config()->set('flow-pilot.queue.queue', null);
+
+    FlowPilot::dispatch(TestFlow::class, ['name' => 'Queued']);
+
+    Queue::assertPushed(RunFlowJob::class, function (RunFlowJob $job): bool {
+        return $job->connection === null
+            && $job->queue === null
+            && $job->flow === TestFlow::class;
+    });
+});
+
 it('inspects a flow run via artisan', function () {
     $flowRun = FlowPilot::run(TestFlow::class);
 
