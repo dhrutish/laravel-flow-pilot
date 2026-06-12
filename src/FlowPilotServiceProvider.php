@@ -2,8 +2,15 @@
 
 namespace FlowPilot\LaravelFlowPilot;
 
+use FlowPilot\LaravelFlowPilot\Commands\CancelFlowCommand;
 use FlowPilot\LaravelFlowPilot\Commands\InspectFlowCommand;
+use FlowPilot\LaravelFlowPilot\Commands\InstallCommand;
 use FlowPilot\LaravelFlowPilot\Commands\ListFlowsCommand;
+use FlowPilot\LaravelFlowPilot\Commands\ListScheduledFlowsCommand;
+use FlowPilot\LaravelFlowPilot\Commands\MakeFlowCommand;
+use FlowPilot\LaravelFlowPilot\Commands\MakeFlowStepCommand;
+use FlowPilot\LaravelFlowPilot\Commands\PruneFlowRunsCommand;
+use FlowPilot\LaravelFlowPilot\Commands\RetryFlowCommand;
 use FlowPilot\LaravelFlowPilot\Commands\RunFlowCommand;
 use FlowPilot\LaravelFlowPilot\Registry\FlowRegistry;
 use FlowPilot\LaravelFlowPilot\Runners\FlowRunner;
@@ -50,9 +57,16 @@ class FlowPilotServiceProvider extends ServiceProvider
             ], 'flow-pilot-migrations');
 
             $this->commands([
-                RunFlowCommand::class,
-                ListFlowsCommand::class,
+                CancelFlowCommand::class,
                 InspectFlowCommand::class,
+                InstallCommand::class,
+                ListFlowsCommand::class,
+                ListScheduledFlowsCommand::class,
+                MakeFlowCommand::class,
+                MakeFlowStepCommand::class,
+                PruneFlowRunsCommand::class,
+                RetryFlowCommand::class,
+                RunFlowCommand::class,
             ]);
         }
 

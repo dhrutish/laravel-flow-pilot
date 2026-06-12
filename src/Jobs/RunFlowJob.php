@@ -22,6 +22,19 @@ class RunFlowJob implements ShouldQueue
         public readonly array $payload = [],
     ) {}
 
+    public function tries(): int
+    {
+        return (int) config('flow-pilot.retries.attempts', 3);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function backoff(): array
+    {
+        return config('flow-pilot.retries.backoff', [60, 300, 900]);
+    }
+
     public function handle(FlowRunner $runner): void
     {
         $runner->run($this->flow, $this->payload);

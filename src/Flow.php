@@ -14,6 +14,13 @@ abstract class Flow
      */
     protected ?string $eventTrigger = null;
 
+    protected bool $scheduled = false;
+
+    /**
+     * @var array{attempts: int, backoff: array<int, int>}|null
+     */
+    protected ?array $retry = null;
+
     abstract public function name(): string;
 
     abstract public function define(): void;
@@ -22,6 +29,8 @@ abstract class Flow
     {
         $this->steps = [];
         $this->eventTrigger = null;
+        $this->scheduled = false;
+        $this->retry = null;
 
         $this->define();
 
@@ -61,6 +70,42 @@ abstract class Flow
     public function eventTrigger(): ?string
     {
         return $this->eventTrigger;
+    }
+
+    public function scheduled(?callable $callback = null): static
+    {
+        $this->scheduled = true;
+
+        return $this;
+    }
+
+    public function isScheduled(): bool
+    {
+        return $this->scheduled;
+    }
+
+    /**
+     * @param  array<int, int>  $backoff
+     */
+    public function retry(int $attempts = 3, array $backoff = [60, 300, 900]): static
+    {
+        $this->retry = [
+            'attempts' => $attempts,
+            'backoff' => $backoff,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @return array{attempts: int, backoff: array<int, int>}
+     */
+    public function retryOptions(): array
+    {
+        return $this->retry ?? [
+            'attempts' => (int) config('flow-pilot.retries.attempts', 3),
+            'backoff' => config('flow-pilot.retries.backoff', [60, 300, 900]),
+        ];
     }
 
     /**

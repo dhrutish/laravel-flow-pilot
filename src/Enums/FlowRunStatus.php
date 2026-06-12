@@ -8,4 +8,6 @@ enum FlowRunStatus: string
     case Running = 'running';
     case Completed = 'completed';
     case Failed = 'failed';
+    case Cancelled = 'cancelled';
+    case Skipped = 'skipped';
 }

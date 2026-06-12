@@ -18,18 +18,22 @@ class FlowRun extends Model
         'trigger_type',
         'trigger_name',
         'payload',
+        'metadata',
         'started_at',
         'completed_at',
         'failed_at',
+        'cancelled_at',
         'failure_message',
     ];
 
     protected $casts = [
         'status' => FlowRunStatus::class,
         'payload' => 'array',
+        'metadata' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'failed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function stepRuns(): HasMany

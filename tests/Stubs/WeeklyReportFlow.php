@@ -14,6 +14,7 @@ class WeeklyReportFlow extends Flow
     public function define(): void
     {
         $this
+            ->scheduled()
             ->step('prepare-report', FirstStep::class)
             ->step('email-report', SecondStep::class);
     }

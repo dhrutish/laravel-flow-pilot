@@ -15,13 +15,19 @@ return new class extends Migration
             $table->string('class')->nullable();
             $table->string('status')->index();
             $table->unsignedInteger('position')->default(0);
+            $table->unsignedInteger('attempts')->default(1);
+            $table->unsignedInteger('max_attempts')->nullable();
             $table->json('input')->nullable();
             $table->json('output')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('failed_at')->nullable();
+            $table->timestamp('skipped_at')->nullable();
             $table->text('failure_message')->nullable();
             $table->timestamps();
+            $table->index(['flow_run_id', 'status']);
+            $table->index(['name', 'status']);
         });
     }
 

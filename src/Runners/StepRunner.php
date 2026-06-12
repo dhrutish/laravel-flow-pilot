@@ -36,6 +36,7 @@ class StepRunner
             'class' => $class,
             'status' => FlowStepStatus::Running,
             'position' => $position,
+            'max_attempts' => config('flow-pilot.retries.attempts', 3),
             'input' => [
                 'payload' => $this->payloadNormalizer->forStorage($context->payload),
                 'step_outputs' => $this->payloadNormalizer->forStorage($context->stepOutputs),

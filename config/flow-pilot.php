@@ -13,6 +13,21 @@ return [
         //
     ],
 
+    'queue' => [
+        'connection' => env('FLOW_PILOT_QUEUE_CONNECTION'),
+        'queue' => env('FLOW_PILOT_QUEUE', 'default'),
+    ],
+
+    'retries' => [
+        'attempts' => 3,
+        'backoff' => [60, 300, 900],
+    ],
+
+    'prune' => [
+        'completed_after_days' => 30,
+        'failed_after_days' => 90,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Payload Storage

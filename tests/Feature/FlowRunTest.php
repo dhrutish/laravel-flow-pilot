@@ -14,6 +14,7 @@ use FlowPilot\LaravelFlowPilot\Models\FlowRun;
 use FlowPilot\LaravelFlowPilot\Models\FlowStepRun;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\EventTriggeredFlow;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\FailingFlow;
+use FlowPilot\LaravelFlowPilot\Tests\Stubs\FirstStep;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\TestFlow;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\TrialEndingSoon;
 use FlowPilot\LaravelFlowPilot\Tests\Stubs\WeeklyReportFlow;
@@ -118,6 +119,20 @@ it('runs a flow via the artisan command', function () {
         ->and($flowRun->status)->toBe(FlowRunStatus::Completed);
 });
 
+it('dispatches a flow via the artisan command', function () {
+    Queue::fake();
+
+    $this->artisan('flow:run', [
+        'flow' => TestFlow::class,
+        '--payload' => json_encode(['name' => 'Queued command']),
+        '--queued' => true,
+    ])
+        ->expectsOutputToContain('dispatched to the queue')
+        ->assertSuccessful();
+
+    Queue::assertPushed(RunFlowJob::class);
+});
+
 it('runs a registered flow by name', function () {
     config()->set('flow-pilot.flows', [TestFlow::class, WeeklyReportFlow::class]);
 
@@ -129,6 +144,65 @@ it('runs a registered flow by name', function () {
         ->and($flowRun->stepRuns)->toHaveCount(2)
         ->and($weeklyReportRun->status)->toBe(FlowRunStatus::Completed)
         ->and($weeklyReportRun->flow_class)->toBe(WeeklyReportFlow::class);
+});
+
+it('lists scheduled flows via artisan', function () {
+    config()->set('flow-pilot.flows', [TestFlow::class, WeeklyReportFlow::class]);
+
+    $this->artisan('flow:schedule:list')
+        ->expectsOutputToContain('weekly-report')
+        ->assertSuccessful();
+});
+
+it('retries a failed flow via artisan', function () {
+    $failedRun = FlowPilot::run(FailingFlow::class);
+
+    $this->artisan('flow:retry', ['runId' => $failedRun->uuid])
+        ->expectsOutputToContain('Retried flow run')
+        ->assertFailed();
+
+    expect(FlowRun::query()->count())->toBe(2);
+});
+
+it('cancels a flow via artisan', function () {
+    $flowRun = FlowPilot::run(TestFlow::class);
+
+    $this->artisan('flow:cancel', ['runId' => $flowRun->uuid])
+        ->expectsOutputToContain('cancelled')
+        ->assertSuccessful();
+
+    expect($flowRun->fresh()->status)->toBe(FlowRunStatus::Cancelled)
+        ->and($flowRun->fresh()->cancelled_at)->not->toBeNull();
+});
+
+it('prunes old completed and failed runs', function () {
+    $completedRun = FlowPilot::run(TestFlow::class);
+    $failedRun = FlowPilot::run(FailingFlow::class);
+    $recentRun = FlowPilot::run(TestFlow::class);
+
+    $completedRun->forceFill(['created_at' => now()->subDays(45)])->save();
+    $failedRun->forceFill(['created_at' => now()->subDays(120)])->save();
+
+    $this->artisan('flow:prune', [
+        '--completed-days' => 30,
+        '--failed-days' => 90,
+    ])
+        ->expectsOutputToContain('Pruned')
+        ->assertSuccessful();
+
+    expect(FlowRun::query()->pluck('id')->all())->toBe([$recentRun->id]);
+});
+
+it('records fake flow assertions', function () {
+    FlowPilot::fake();
+
+    FlowPilot::run(TestFlow::class);
+    FlowPilot::run(FailingFlow::class);
+
+    FlowPilot::assertStarted('test-flow');
+    FlowPilot::assertCompleted('test-flow');
+    FlowPilot::assertFailed('failing-flow');
+    FlowPilot::assertStepRan('test-flow', FirstStep::class);
 });
 
 it('lists registered flows via artisan', function () {

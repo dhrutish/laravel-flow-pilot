@@ -17,11 +17,15 @@ return new class extends Migration
             $table->string('trigger_type')->nullable()->index();
             $table->string('trigger_name')->nullable()->index();
             $table->json('payload')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('failed_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
             $table->text('failure_message')->nullable();
             $table->timestamps();
+            $table->index(['flow_name', 'status']);
+            $table->index(['created_at', 'status']);
         });
     }
 

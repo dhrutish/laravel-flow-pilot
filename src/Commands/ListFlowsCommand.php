@@ -37,10 +37,12 @@ class ListFlowsCommand extends Command
                 $flow->name(),
                 $flowClass,
                 count($flow->steps()),
+                $flow->eventTrigger() ?? '-',
+                $flow->isScheduled() ? 'yes' : 'no',
             ];
         }
 
-        $this->table(['Name', 'Class', 'Steps'], $rows);
+        $this->table(['Name', 'Class', 'Steps', 'Event', 'Scheduled'], $rows);
 
         return self::SUCCESS;
     }

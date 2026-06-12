@@ -9,7 +9,8 @@ class RunFlowCommand extends Command
 {
     protected $signature = 'flow:run
                             {flow : The registered flow name or fully qualified flow class name}
-                            {--payload= : JSON payload for the flow}';
+                            {--payload= : JSON payload for the flow}
+                            {--queued : Dispatch the flow onto the queue}';
 
     protected $description = 'Run a flow synchronously';
 
@@ -26,6 +27,14 @@ class RunFlowCommand extends Command
 
                 return self::FAILURE;
             }
+        }
+
+        if ($this->option('queued')) {
+            FlowPilot::dispatch($flow, $payload);
+
+            $this->info("Flow [{$flow}] dispatched to the queue.");
+
+            return self::SUCCESS;
         }
 
         $flowRun = FlowPilot::run($flow, $payload);

@@ -16,21 +16,29 @@ class FlowStepRun extends Model
         'class',
         'status',
         'position',
+        'attempts',
+        'max_attempts',
         'input',
         'output',
+        'metadata',
         'started_at',
         'completed_at',
         'failed_at',
+        'skipped_at',
         'failure_message',
     ];
 
     protected $casts = [
         'status' => FlowStepStatus::class,
+        'attempts' => 'integer',
+        'max_attempts' => 'integer',
         'input' => 'array',
         'output' => 'array',
+        'metadata' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'failed_at' => 'datetime',
+        'skipped_at' => 'datetime',
     ];
 
     public function flowRun(): BelongsTo

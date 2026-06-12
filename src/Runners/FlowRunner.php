@@ -37,6 +37,9 @@ class FlowRunner
             'trigger_type' => $options['trigger_type'] ?? null,
             'trigger_name' => $options['trigger_name'] ?? null,
             'payload' => $this->payloadNormalizer->forStorage($payload),
+            'metadata' => [
+                'retry' => $flowDefinition->retryOptions(),
+            ],
             'started_at' => now(),
         ]);
 
