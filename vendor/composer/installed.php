@@ -3,7 +3,7 @@
         'name' => 'flow-pilot/laravel-flow-pilot',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '1b15fec133d8a6840116b4cda0a7491919f7caba',
+        'reference' => '2edeefacacf13bb7f95b3ce685d3d57bef0240bf',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -142,7 +142,7 @@
         'flow-pilot/laravel-flow-pilot' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '1b15fec133d8a6840116b4cda0a7491919f7caba',
+            'reference' => '2edeefacacf13bb7f95b3ce685d3d57bef0240bf',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
